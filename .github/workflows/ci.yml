@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ──────────────────────────────────────────────────────────────────────────
+  # Job 1: Analyze, format, and test
+  # ──────────────────────────────────────────────────────────────────────────
+  analyze-and-test:
+    name: Analyze & Test (Dart ${{ matrix.sdk }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        sdk: [stable, beta]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ matrix.sdk }}
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze (errors + warnings are fatal)
+        run: dart analyze
+
+      - name: Run tests
+        run: dart test --reporter=expanded
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # Job 2: Version reminder (runs on every push to main)
+  # Checks whether pubspec.yaml version has been bumped relative to pub.dev.
+  # Fails the build if the version already exists on pub.dev — a reminder
+  # that you must bump the version before publishing a new release.
+  # ──────────────────────────────────────────────────────────────────────────
+  version-check:
+    name: Version bump reminder
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read pubspec version
+        id: pubspec
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | tr -d '[:space:]')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "pubspec.yaml version: $VERSION"
+
+      - name: Check against pub.dev
+        env:
+          PUBSPEC_VERSION: ${{ steps.pubspec.outputs.version }}
+        run: |
+          PUBLISHED=$(curl -sf "https://pub.dev/api/packages/simosec" \
+            | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['latest']['version'])" \
+            2>/dev/null || echo "not-yet-published")
+
+          echo "pub.dev latest : $PUBLISHED"
+          echo "pubspec.yaml   : $PUBSPEC_VERSION"
+
+          if [ "$PUBSPEC_VERSION" = "$PUBLISHED" ]; then
+            echo ""
+            echo "::error::Version $PUBSPEC_VERSION is already published on pub.dev."
+            echo "::error::Bump the version in pubspec.yaml AND add a CHANGELOG.md entry before publishing a new release."
+            exit 1
+          else
+            echo ""
+            echo "✓ Version $PUBSPEC_VERSION has not been published yet — ready to publish when CI is green."
+          fi
