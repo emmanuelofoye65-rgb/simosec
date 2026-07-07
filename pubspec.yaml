@@ -1,0 +1,27 @@
+name: simosec
+description: >
+  Modular security engine for APIs and fintech apps. A pluggable,
+  middleware-based pipeline providing HMAC-SHA256 signature verification,
+  input validation, dry-run sandboxing, rate limiting, anomaly detection,
+  authorization, and audit logging.
+version: 0.1.0
+homepage: https://github.com/emmanuelofoye65-rgb/simosec
+repository: https://github.com/emmanuelofoye65-rgb/simosec
+issue_tracker: https://github.com/emmanuelofoye65-rgb/simosec/issues
+topics:
+  - security
+  - fintech
+  - middleware
+  - authentication
+  - api
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  # Real HMAC-SHA256 signing/verification (see lib/utils/crypto_utils.dart).
+  crypto: ^3.0.3
+
+dev_dependencies:
+  lints: ^3.0.0
+  test: ^1.25.0

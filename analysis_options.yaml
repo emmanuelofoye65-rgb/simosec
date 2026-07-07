@@ -1,0 +1,13 @@
+include: package:lints/recommended.yaml
+
+linter:
+  rules:
+    - public_member_api_docs
+    - prefer_single_quotes
+    - always_declare_return_types
+
+analyzer:
+  errors:
+    public_member_api_docs: warning
+  exclude:
+    - example/**
