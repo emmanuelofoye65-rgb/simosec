@@ -271,6 +271,105 @@ dart run example/main.dart
 dart run example/manual_validation.dart
 ```
 
+## CI
+
+Every push to `main` and every pull request runs three jobs automatically
+via [GitHub Actions](.github/workflows/ci.yml):
+
+| Job | What it does |
+| --- | --- |
+| **Analyze & Test (stable)** | `dart format` check → `dart analyze` → `dart test` |
+| **Analyze & Test (beta)** | Same checks on the Dart beta channel, so you catch breakage early |
+| **Version bump reminder** | Compares `pubspec.yaml` version against pub.dev; **fails the build** if the version is already published — a hard reminder to bump before you release |
+
+A green CI badge on `main` means the package analyzes cleanly, all 21
+tests pass, and the version is ready to publish.
+
+**Rules for contributors:**
+
+- All three jobs must be green before merging to `main`.
+- Any new public API needs a doc comment — `dart analyze` will catch it.
+- Any new layer or behavior needs a test — `dart test` will catch regressions.
+
+## Publishing a new version to pub.dev
+
+Follow this checklist every time you want to ship a new release:
+
+### 1. Make and merge your changes
+
+Develop on a branch, open a PR, confirm CI is green, then merge.
+
+### 2. Bump the version in `pubspec.yaml`
+
+SIMOSEC follows [semantic versioning](https://semver.org):
+
+| Change type | Example bump |
+| --- | --- |
+| Bug fix or docs only | `0.1.0` → `0.1.1` |
+| New layer / new API (backward-compatible) | `0.1.0` → `0.2.0` |
+| Breaking change to existing API | `0.1.0` → `1.0.0` |
+
+```yaml
+# pubspec.yaml
+version: 0.2.0   # was 0.1.0
+```
+
+### 3. Update `CHANGELOG.md`
+
+Add a section at the top following the existing format:
+
+```markdown
+## 0.2.0
+
+- Added `ThrottleLayer` for per-endpoint rate limiting.
+- Fixed: `SignatureLayer` now rejects empty `X-Timestamp` headers.
+```
+
+### 4. Push to main — CI runs automatically
+
+The version-check job will now show **green** (new version ≠ published
+version). If it's still red, you forgot to bump the version.
+
+### 5. Log in to pub.dev (one-time setup per machine)
+
+```bash
+dart pub login
+# Opens a browser tab — sign in with your Google account
+```
+
+### 6. Publish
+
+Run this from inside the `simosec/` directory:
+
+```bash
+dart pub publish
+```
+
+You'll see a file listing and a confirmation prompt:
+
+```
+Publishing simosec 0.2.0 to https://pub.dev ...
+Do you want to publish simosec 0.2.0? (y/N)
+```
+
+Type `y` and press Enter. The package is live within seconds.
+
+### 7. Tag the release on GitHub
+
+```bash
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+Then create a GitHub Release from the tag so users can see a clean
+changelog entry alongside the pub.dev listing.
+
+---
+
+**Never publish without a green CI run and a version bump.**
+The `version-check` job is there to enforce this — treat a red badge as
+a hard stop.
+
 ## Contributing
 
 Issues and pull requests are welcome. Please run `dart analyze` and
